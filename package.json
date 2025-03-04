@@ -7,8 +7,8 @@
     "devDependencies": {
         "@coreui/coreui": "^3.2.2",
         "@coreui/icons": "^1.0.1",
-        "axios": "^0.21",
-        "bootstrap": "^4.1.0",
+        "axios": "^1.8.1",
+        "bootstrap": "^5.3.3",
         "laravel-mix": "^6.0.6",
         "laravel-vite-plugin": "^0.7.8",
         "popper.js": "^1.12",
