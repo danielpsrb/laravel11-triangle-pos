@@ -6,11 +6,18 @@ use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Facades\Image;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 use Modules\Upload\Entities\Upload;
 
 class UploadController extends Controller
 {
+    protected ImageManager $imageManager;
+
+    public function __construct()
+    {
+        $this->imageManager = new ImageManager(new Driver());
+    }
 
     public function filepondUpload(Request $request) {
         $request->validate([
@@ -22,9 +29,13 @@ class UploadController extends Controller
             $filename = now()->timestamp . '.' . $uploaded_file->getClientOriginalExtension();
             $folder = uniqid() . '-' . now()->timestamp;
 
-            $file = Image::make($uploaded_file)->encode($uploaded_file->getClientOriginalExtension());
+            //using the image manager that has been declared in the constructor
+            $file = $this->imageManager->read($uploaded_file->getRealPath());
 
-            Storage::put('temp/' . $folder . '/' . $filename, $file);
+            // Encode image to JPEG format
+            $encoded = $file->toJpg();
+
+            Storage::put('temp/' . $folder . '/' . $filename, $encoded);
 
             Upload::create([
                 'folder'   => $folder,
@@ -37,7 +48,6 @@ class UploadController extends Controller
         return false;
     }
 
-
     public function filepondDelete(Request $request) {
         $upload = Upload::where('folder', $request->getContent())->first();
 
@@ -46,7 +56,6 @@ class UploadController extends Controller
 
         return response(null);
     }
-
 
     public function dropzoneUpload(Request $request) {
         $file = $request->file('file');
