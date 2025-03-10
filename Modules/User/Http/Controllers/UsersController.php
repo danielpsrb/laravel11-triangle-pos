@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +20,6 @@ class UsersController extends Controller
 
         return $dataTable->render('user::users.index');
     }
-
 
     public function create() {
         abort_if(Gate::denies('access_user_management'), 403);
@@ -49,11 +49,19 @@ class UsersController extends Controller
         if ($request->has('image')) {
             $tempFile = Upload::where('folder', $request->image)->first();
 
-            if ($tempFile) {
-                $user->addMedia(Storage::path('public/temp/' . $request->image . '/' . $tempFile->filename))->toMediaCollection('avatars');
+            if ($tempFile && $tempFile->filename) {
+                // Use storage_path to ensure the path is correct
+                $filePath = storage_path('app/temp/' . $request->image . '/' . $tempFile->filename);
 
-                Storage::deleteDirectory('public/temp/' . $request->image);
-                $tempFile->delete();
+                if (file_exists($filePath)) {
+                    $user->addMedia($filePath)->toMediaCollection('avatars');
+
+                    // Delete folder after files are moved
+                    Storage::deleteDirectory('temp/' . $request->image);
+                    $tempFile->delete();
+                } else {
+                    Log::error('File not found: ' . $filePath);
+                }
             }
         }
 
@@ -62,13 +70,11 @@ class UsersController extends Controller
         return redirect()->route('users.index');
     }
 
-
     public function edit(User $user) {
         abort_if(Gate::denies('access_user_management'), 403);
 
         return view('user::users.edit', compact('user'));
     }
-
 
     public function update(Request $request, User $user) {
         abort_if(Gate::denies('access_user_management'), 403);
